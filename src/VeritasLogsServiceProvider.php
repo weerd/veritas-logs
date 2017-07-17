@@ -16,6 +16,10 @@ class VeritasLogsServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'veritas-logs');
+
+        $this->publishes([
+            __DIR__.'/../config/veritaslogs.php' => config_path('veritaslogs.php'),
+        ], 'veritas-logs-config');
     }
 
     /**
