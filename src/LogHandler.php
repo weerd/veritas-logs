@@ -7,23 +7,28 @@ use Illuminate\Support\Facades\Log;
 class LogHandler
 {
     /**
-     * [$maxlength description]
-     * @var [type]
+     * Maximum length of data (in characters) to read.
+     *
+     * @var string
      */
     protected $maxlength;
 
     /**
-     * [$path description]
-     * @var [type]
+     * Path to the log file location.
+     *
+     * @var string
      */
     protected $path;
 
     /**
-     * [__construct description]
+     * Create a Log Handler instance.
+     *
+     * @return void
      */
     public function __construct()
     {
         $this->maxlength = -(config('veritaslogs.maxlength'));
+        // $this->maxlength = config('veritaslogs.maxlength') ? -(config('veritaslogs.maxlength')) : 10000;
 
         $this->path = storage_path('logs/laravel.log');
     }
@@ -34,32 +39,32 @@ class LogHandler
      */
     public function get()
     {
-        $data = $this->find();
+        // dump($this->maxlength);
+
+        $data = read_log_file_contents($this->path, $this->maxlength);
 
         if (! $data || empty($data)) {
             return null;
         }
 
-        return $this->parse($data);
+        // @TODO: need to clean up recursive function logic!
+        $data = $this->parse($data);
+
+        if (! $data) {
+            // dump('nope');
+            return $this->expandedGet();
+        }
+
+        // dd($data);
+
+        return $data;
     }
 
-    /**
-     * [find description]
-     * @return [type] [description]
-     */
-    protected function find()
+    protected function expandedGet()
     {
-        if (! file_exists($this->path)) {
-            return null;
-        }
+        $this->maxlength = $this->maxlength * 2;
 
-        try {
-            return file_get_contents($this->path, false, null, $this->maxlength);
-        } catch (\ErrorException $error) {
-            Log::error($error);
-
-            return file_get_contents($this->path, false, null);
-        }
+        return $this->get();
     }
 
     /**
@@ -69,10 +74,13 @@ class LogHandler
     protected function parse($data)
     {
         $logs = [];
+        $output = [];
         $currentLog = 0;
         $key = null;
 
         $lines = preg_split("/\\n/", $data);
+
+        // dd($lines);
 
         foreach ($lines as $line) {
 
@@ -87,6 +95,7 @@ class LogHandler
                 $logs[$key]['timestamp'] = array_shift($timestamp);
                 $logs[$key]['logLevel'] = array_shift($logLevel);
                 $logs[$key]['message'] = trim(str_replace([$logs[$key]['timestamp'], $logs[$key]['logLevel']], '', $line));
+
                 continue;
             }
 
@@ -95,9 +104,25 @@ class LogHandler
 
                 if ($stacktraceItem) {
                     $logs[$key]['stacktrace'][] = $line;
+
+                    continue;
                 }
             }
+
+            if ($currentLog) {
+                $output[] = $line;
+            }
         };
+
+        if ($output) {
+            array_unshift($output, $logs[$key]['message']);
+
+            $logs[$key]['output'] = implode("\r\n" , $output);
+
+            unset($logs[$key]['message']);
+        }
+
+        // dd($logs);
 
         return $logs;
     }

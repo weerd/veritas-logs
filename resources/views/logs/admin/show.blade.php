@@ -18,15 +18,15 @@
     }
     .stacktrace {
         font-family: Monaco, "Courier New", "Courier";
-        font-size: smaller;
+        font-size: x-small;
         list-style-type: none;
         margin: 0;
         padding: 0;
     }
     .stacktrace li {
-        overflow-x: scroll;
+        /*overflow-x: scroll;*/
         padding: 1rem;
-        white-space: nowrap;
+        /*white-space: nowrap;*/
     }
     .stacktrace li + li {
         border-top: 1px solid #ccc;
@@ -71,10 +71,16 @@
                             <h2 class="card-title h5">{{ $log['logLevel'] }}</h2>
 
                             <p class="card-title">
-                                <code>{{ $log['message'] }}</code>
+                                @if(isset($log['message']))
+                                    <code>{{ $log['message'] }}</code>
+                                @endif
+
+                                @if(isset($log['output']))
+                                    <pre><code>{{ $log['output'] }}</code></pre>
+                                @endif
                             </p>
 
-                            @isset($log['stacktrace'])
+                            @if(isset($log['stacktrace']))
                                 <div id="accordion" role="tablist" aria-multiselectable="true">
                                     <div class="card">
                                         <div class="card-header justify-content-between" role="tab" id="headingOne">
@@ -95,8 +101,9 @@
                                         </div>
                                     </div>
                                 </div>
-                            @endisset
+                            @endif
                         </div>
+
                     </div>
                 @endforeach
             @else

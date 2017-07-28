@@ -9,6 +9,12 @@ class LogController extends BaseController
 {
     protected $logHandler;
 
+    /**
+     * Create a Log Controller instance.
+     *
+     * @param  \Weerd\VeritasLogs\LogHandler $logHandler
+     * @return void
+     */
     public function __construct(LogHandler $logHandler)
     {
         $middlewares = ['web'];
@@ -23,10 +29,9 @@ class LogController extends BaseController
     }
 
     /**
-     * [__invoke description]
+     * Invoke the default method on this controller.
      *
      * @return \Illuminate\Http\Response
-     * @todo Refactor this into smaller methods.
      */
     public function __invoke()
     {
@@ -36,6 +41,8 @@ class LogController extends BaseController
         }
 
         $logs = $this->logHandler->get();
+
+        // dd($logs);
 
         if ($logs) {
             $logs = collect($logs)->reverse();

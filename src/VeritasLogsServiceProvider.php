@@ -17,6 +17,7 @@ class VeritasLogsServiceProvider extends ServiceProvider
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'veritas-logs');
 
+        // @TODO: grab config from package? or use sensible defaults in functions?
         $this->publishes([
             __DIR__.'/../config/veritaslogs.php' => config_path('veritaslogs.php'),
         ], 'veritas-logs-config');
