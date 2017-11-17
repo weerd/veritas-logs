@@ -2,6 +2,7 @@
 
 namespace Weerd\VeritasLogs;
 
+use Weerd\VeritasLogs\Parser;
 use Illuminate\Support\Facades\Log;
 
 class LogHandler
@@ -12,6 +13,8 @@ class LogHandler
      * @var string
      */
     protected $maxlength;
+
+    protected $parser;
 
     /**
      * Path to the log file location.
@@ -25,12 +28,15 @@ class LogHandler
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(Parser $parser)
     {
         $this->maxlength = -(config('veritaslogs.maxlength'));
         // $this->maxlength = config('veritaslogs.maxlength') ? -(config('veritaslogs.maxlength')) : 10000;
 
+        // laravel, phoenix, empty, short, simple
         $this->path = storage_path('logs/laravel.log');
+
+        $this->parser = $parser;
     }
 
     /**
@@ -39,40 +45,26 @@ class LogHandler
      */
     public function get()
     {
-        // dump($this->maxlength);
-
         $data = read_log_file_contents($this->path, $this->maxlength);
 
         if (! $data || empty($data)) {
             return null;
         }
 
-        // @TODO: need to clean up recursive function logic!
-        $data = $this->parse($data);
-
-        if (! $data) {
-            // dump('nope');
-            return $this->expandedGet();
-        }
-
-        // dd($data);
-
-        return $data;
-    }
-
-    protected function expandedGet()
-    {
-        $this->maxlength = $this->maxlength * 2;
-
-        return $this->get();
+        return $this->format($data);
     }
 
     /**
-     * [parse description]
+     * [format description]
      * @return [type] [description]
      */
-    protected function parse($data)
+    protected function format($data)
     {
+
+        $data = $this->parser->discardExcess($data);
+
+        // dd(['file' => LogHandler::class, 'data' => $data]); // @remove
+
         $logs = [];
         $output = [];
         $currentLog = 0;
@@ -80,73 +72,45 @@ class LogHandler
 
         $lines = preg_split("/\\n/", $data);
 
-        // dd($lines);
+        // dd(['file' => LogHandler::class, 'data' => $lines]); // @remove
 
         foreach ($lines as $line) {
 
-            $timestamp = $this->matchTimestamp($line);
+            $timestamp = $this->parser->matchTimestamp($line);
 
             if ($timestamp) {
                 $currentLog += 1;
                 $key = 'log'.$currentLog;
 
-                $logLevel = $this->matchLogLevel($line);
+                $level = $this->parser->matchLevel($line);
 
                 $logs[$key]['timestamp'] = array_shift($timestamp);
-                $logs[$key]['logLevel'] = array_shift($logLevel);
-                $logs[$key]['message'] = trim(str_replace([$logs[$key]['timestamp'], $logs[$key]['logLevel']], '', $line));
+                $logs[$key]['level'] = array_shift($level);
+                $logs[$key]['output'][] = trim(str_replace([$logs[$key]['timestamp'], $logs[$key]['level']], '', $line));
+
+                // dd(['file' => LogHandler::class, 'line' => $line, 'data' => $logs]); // @remove
 
                 continue;
             }
 
-            if ($currentLog) {
-                $stacktraceItem = $this->matchStacktraceItem($line);
+            if ($this->parser->matchStacktraceOutput($line)) {
+                $logs[$key]['stacktrace'][] = $line;
 
-                if ($stacktraceItem) {
-                    $logs[$key]['stacktrace'][] = $line;
-
-                    continue;
-                }
+                continue;
             }
 
-            if ($currentLog) {
-                $output[] = $line;
+            if (! $this->parser->matchStacktraceHeading($line)) {
+                $logs[$key]['output'][] = $line;
             }
         };
 
-        if ($output) {
-            array_unshift($output, $logs[$key]['message']);
+        // $logs = collect($logs)->map(function ($log) {
+        //     $log['output'] = implode("\r\n", $log['output']);
 
-            $logs[$key]['output'] = implode("\r\n" , $output);
-
-            unset($logs[$key]['message']);
-        }
-
-        // dd($logs);
+        //     return $log;
+        // });
 
         return $logs;
-    }
-
-    protected function matchTimestamp($string)
-    {
-        $output = [];
-
-        preg_match("/\[\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\]/", $string, $output);
-
-        return $output;
-    }
-
-    protected function matchLogLevel($string)
-    {
-        $output = [];
-
-        preg_match("/[A-Za-z]+\.[A-Za-z]+:/", $string, $output);
-
-        return $output;
-    }
-
-    protected function matchStacktraceItem($string)
-    {
-        return preg_match("/#\d+/", $string);
+        // return $logs->all();
     }
 }

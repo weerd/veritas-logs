@@ -11,12 +11,12 @@
   ],
   "minimum-stability": "dev",
   "autoload": {
-    "files": [
-      "src/helpers.php"
-    ],
     "psr-4": {
       "Weerd\\VeritasLogs\\": "src/"
-    }
+    },
+    "files": [
+      "src/helpers.php"
+    ]
   },
   "require": {
     "laravel/framework": "^5.3"

@@ -13,8 +13,6 @@ function read_log_file_contents($path, $maxlength)
     } catch (\ErrorException $error) {
         Log::error($error);
 
-        // dump(file_get_contents($path, false, null));
-
         return file_get_contents($path, false, null);
     }
 }

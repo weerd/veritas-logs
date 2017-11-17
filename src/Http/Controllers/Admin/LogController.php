@@ -7,7 +7,7 @@ use Weerd\VeritasLogs\Http\Controllers\Controller as BaseController;
 
 class LogController extends BaseController
 {
-    protected $logHandler;
+    protected $logHandler; // logReader?
 
     /**
      * Create a Log Controller instance.
@@ -42,7 +42,7 @@ class LogController extends BaseController
 
         $logs = $this->logHandler->get();
 
-        // dd($logs);
+        dd(['file' => LogController::class, 'data' => $logs]);
 
         if ($logs) {
             $logs = collect($logs)->reverse();
